@@ -7,6 +7,11 @@ Skin parent the selected objects to a bone
 
 Just select the objects to skin parent then select the bone in pose mode or edit armature mode then click on skin parents 
 
+
+### Where ?
+
+Viewport Toolbar ('t' key) > "RIG tools" tab  
+
 <!-- Old method
 **Target rig**  
 Select the armature. Important note : In this list you see the Armature *Data* name, not the Armature *object* name
@@ -15,25 +20,20 @@ Select the armature. Important note : In this list you see the Armature *Data* n
 List the bones of the targeted rig
 -->
 
-Options:
+### Options
 
 **kill other vertex groups**  
 All others vertex groups of the current object are deleted  
-When ticked, filters checkboxes will appears
 
-#### Delete filters descriptions
+#### Delete filters descriptions  
+(appears if you've ticked previous checkbox)
 
-**Only groups related to this armature**
+**Only groups related to this armature**  
 Delete only vertex groups associated with the current armature (named after a bone of current armature).
 Usefull to keep vertex groups created for any other purpose than skinning.
 
-**delete only full weighted groups** (appears if you've ticked previous checkbox)  
+**delete only full weighted groups**   
 Existing vertex groups of selected objects are deleted only if all their vertex are 100% assigned (fully weighted).
-
-
-### Where ?
-
-Viewport Toolbar ('t' key) > "RIG tools" tab  
 
 <!-- Old method
 ![skin parent panel](https://github.com/Pullusb/images_repo/raw/master/blender_SkinParent_panel.png)
