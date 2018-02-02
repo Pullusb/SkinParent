@@ -1,8 +1,10 @@
 # SkinParent
 
 Skin parent the selected objects to a bone
-
-
+  
+**[Download latest](https://raw.githubusercontent.com/Pullusb/SkinParent/master/skinParent.py)** (right click, save Target as)  
+  
+---
 ### Description
 
 Just select the objects to skin parent then select the bone in pose mode or edit armature mode then click on skin parents 
