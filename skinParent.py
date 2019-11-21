@@ -2,8 +2,8 @@ bl_info = {
     "name": "SkinParent",
     "description": "Skin parent (vertex group with full weight) the selected objects to a bone",
     "author": "Samuel Bernou",
-    "version": (2, 0, 0),
-    "blender": (2, 77, 0),
+    "version": (2, 1, 0),
+    "blender": (2, 81, 0),
     "location": "View3D > Tool Shelf > RIG tool > Skin parent",
     "warning": "",
     "wiki_url": "",
@@ -70,6 +70,23 @@ def CheckFullWeight(ob, vgName):
 
     return (True)
 
+def SimpleVertexGroupToBone(ob, targetRig, targetBone, context):
+    '''
+    Add a vertex group to the object named afer the given bone
+    assign full weight to this vertex group
+    return a list of bypassed object (due to vertex group already existed)
+    '''
+
+    #if the vertex group related to the chosen bone is'nt here, create i and Skin parent (full weight)
+    if not targetBone in [i.name for i in ob.vertex_groups]:
+        vg = ob.vertex_groups.new(name=targetBone)
+
+    else: #vertex group exist, or weight it (leave it untouched ?)
+        vg = ob.vertex_groups[targetBone]
+
+    verts = [i.index for i in ob.data.vertices]
+    vg.add(verts, 1, "ADD")
+
 
 def VertexGroupToBone(ob, targetRig, targetBone, context):
     '''
@@ -115,11 +132,44 @@ def VertexGroupToBone(ob, targetRig, targetBone, context):
                             ob.vertex_groups.remove(ob.vertex_groups[bone.name])
 
 
+class SKP_OT_convert_parent_to_skin(bpy.types.Operator):
+    bl_idname = "rig.convert_parent_to_skinning"
+    bl_label = "Convert parent to skin"
+    bl_description = "All select object that are directly parented to a bone get an armature modifier instead"
+    bl_options = {"REGISTER"}
 
 
-class SkinParentOP(bpy.types.Operator):
+    def execute(self, context):
+        keep_transform = context.scene.SP_keepTransform
+
+        print('-'*5)
+        for ob in bpy.context.selected_objects:
+            if ob.parent:
+                print("ob has parent", ob.parent.name)
+                targetRig = ob.parent.data.name
+                if ob.parent_type == 'BONE':
+                    print("is bone parented to")
+                    if ob.parent_bone:
+                        targetBone = ob.parent_bone
+                        print("ob.parent_bone", ob.parent_bone)#Dbg
+
+                        if keep_transform:
+                            #Clear and keep transform (matrix reattribution)
+                            matrixcopy = ob.matrix_world.copy()
+                            ob.parent = None
+                            ob.matrix_world = matrixcopy
+                        else:
+                            ob.parent = None
+
+                        #replace by armature
+                        CreateArmatureModifier(ob, targetRig)
+                        SimpleVertexGroupToBone(ob, targetRig, targetBone, bpy.context)
+
+        return {"FINISHED"}
+
+class SKP_OT_skin_parent(bpy.types.Operator):
     bl_idname = "rig.skinparent"
-    bl_label = "Skin parent to bone"
+    bl_label = "Skin to bone"
     bl_description = "skin parent(fullweight) selected objects to target bones (create armature and assign vertex group)"
     bl_options = {"REGISTER"}
 
@@ -149,11 +199,11 @@ class SkinParentOP(bpy.types.Operator):
                 actob = context.object #backup current active obj
 
                 for ob in mesh_selection:
-                    context.scene.objects.active = ob
+                    context.view_layer.objects.active = ob
                     CreateArmatureModifier(ob, targetRig)
                     VertexGroupToBone(ob, targetRig, targetBone, context)
 
-                context.scene.objects.active = actob #re-assign active obj
+                context.view_layer.objects.active = actob #re-assign active obj
             else:
                 self.report({'ERROR'}, "target missing")
 
@@ -164,9 +214,9 @@ class SkinParentOP(bpy.types.Operator):
 
         return {"FINISHED"}
 
-class SkinParentUI(bpy.types.Panel):
+class SKP_PT_skin_parent_ui(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
-    bl_region_type = 'TOOLS'
+    bl_region_type = 'UI'
     bl_label = "Skin parent"
     bl_category ="RIG Tools"
 
@@ -175,6 +225,8 @@ class SkinParentUI(bpy.types.Panel):
     bpy.types.Scene.SP_killVG = bpy.props.BoolProperty(name = 'killVG', default=False, description = "Delete others existing vertex groups (destructive!)")
     bpy.types.Scene.SP_onlyBone = bpy.props.BoolProperty(name = 'onlyBone', default=False, description = "Delete only vertex groups associated with other bones of this armature")
     bpy.types.Scene.SP_keepWeighted = bpy.props.BoolProperty(name = 'keepWeighted', default=False, description = "delete vertex groups only if they are full weighted")
+    
+    bpy.types.Scene.SP_keepTransform = bpy.props.BoolProperty(name = 'Keep transform', default=True, description = "Keep transformation when deleteting the parent (before skinning to armature)")
 
 
     def draw(self, context):
@@ -187,19 +239,22 @@ class SkinParentUI(bpy.types.Panel):
         if context.scene.SP_target_armature:
             row.prop_search(context.scene, "SP_targetbone", bpy.data.armatures[context.scene.SP_target_armature], "bones",text="target bones")
         '''
+        layout.operator("rig.convert_parent_to_skinning")
+        layout.prop(context.scene, "SP_keepTransform")
+        layout.separator()
         row = layout.row(align = True)
-        row.operator("rig.skinparent",text= "Skin to Bone")
+        row.operator("rig.skinparent")
         if context.mode == 'POSE' or context.mode == 'EDIT_ARMATURE':
             row.enabled = True
         else:
             row.enabled = False
 
         row = layout.row(align = True)
-        row.prop(context.scene, "SP_killVG", text="kill other vertex groups")
+        row.prop(context.scene, "SP_killVG", text="Kill other vertex groups")
         if context.scene.SP_killVG:
             #separator label
             row = layout.row(align = True)
-            row.label('Delete filters:')
+            row.label(text = 'Delete filters:')
 
             #options
             row = layout.row(align = True)
@@ -208,13 +263,30 @@ class SkinParentUI(bpy.types.Panel):
             row.prop(context.scene, "SP_keepWeighted", text="Only fully weighted groups")
 
 
+classes = (
+SKP_OT_convert_parent_to_skin,
+SKP_OT_skin_parent,
+SKP_PT_skin_parent_ui,
+)
 
 
+
+
+### --- REGISTER ---
+
+register, unregister = bpy.utils.register_classes_factory(classes)
+
+'''#detailed
 def register():
-    bpy.utils.register_module(__name__)
+    from bpy.utils import register_class
+    for cls in classes:
+        register_class(cls)
 
 def unregister():
-    bpy.utils.unregister_module(__name__)
+    from bpy.utils import unregister_class
+    for cls in reversed(classes):
+        unregister_class(cls)
+'''
 
 if __name__ == "__main__":
     register()
