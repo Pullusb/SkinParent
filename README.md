@@ -2,8 +2,12 @@
 
 Skin parent the selected objects to a bone
   
-**[Download latest](https://raw.githubusercontent.com/Pullusb/SkinParent/master/skinParent.py)** (right click, save Target as)  
+**[Download latest](https://raw.githubusercontent.com/Pullusb/SkinParent/master/skinParent.py)** (right click, save Target as)
+
+**[Download for 2.79](https://raw.githubusercontent.com/Pullusb/SkinParent/master/skinParent_279.py)** (right click, save Target as) 
   
+Want to support me? [Check out how](http://www.samuelbernou.fr/donate)
+
 ---
 ### Description
 
